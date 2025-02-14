@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    restart: always
+    ports:
+      - "5678:5678"  # Porta para acessar o n8n na sua máquina local
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - GENERIC_TIMEZONE=America/Sao_Paulo  # Defina o fuso horário desejado
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - rede_geral
+
+networks:
+  rede_geral:
+    external: true
+
+volumes:
+  n8n_data:

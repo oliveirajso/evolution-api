@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  typebot-builder:
+    image: baptistearno/typebot-builder:latest
+    restart: always
+    depends_on:
+      - minio
+    ports:
+      - "3000:3000" # Substitua pela porta que sua aplicação usa
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/typebot
+      - REDIS_URL=redis://redis:6379
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXT_PUBLIC_VIEWER_URL=http://localhost:3001
+      - ENCRYPTION_SECRET=K+Bar660Ofaec7v1jHC25tAn3l2b7c81
+      - ADMIN_EMAIL=857007001@smtp-brevo.com
+      - DISABLE_SIGNUP=false
+      - SMTP_AUTH_DISABLED=false
+      - SMTP_SECURE=true
+      - SMTP_HOST=smtp-relay.brevo.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=857007001@smtp-brevo.com
+      - SMTP_PASSWORD=pVGRqKE3ctWPB7J9
+      - NEXT_PUBLIC_SMTP_FROM=857007001@smtp-brevo.com
+      - S3_ACCESS_KEY=minio
+      - S3_SECRET_KEY=minio123
+      - S3_BUCKET=typebot
+      - S3_ENDPOINT=http://localhost:9000
+    networks:
+      - rede_geral
+
+  typebot-viewer:
+    image: baptistearno/typebot-viewer:latest
+    restart: always
+    depends_on:
+      - minio
+    ports:
+      - "3001:3000" # Substitua pela porta que sua aplicação usa
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/typebot
+      - REDIS_URL=redis://redis:6379
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXT_PUBLIC_VIEWER_URL=http://localhost:3001
+      - ENCRYPTION_SECRET=K+Bar660Ofaec7v1jHC25tAn3l2b7c81
+      - SMTP_HOST=smtp-relay.brevo.com
+      - NEXT_PUBLIC_SMTP_FROM=857007001@smtp-brevo.com
+      - S3_ACCESS_KEY=minio
+      - S3_SECRET_KEY=minio123
+      - S3_BUCKET=typebot
+      - S3_ENDPOINT=http://localhost:9000
+    networks:
+      - rede_geral
+
+
+  minio:
+    image: minio/minio
+    restart: always
+    command: server --console-address ":9001" /data
+    ports:
+      - "9000:9000" # API do MinIO
+      - "9001:9001" # Console Web do MinIO
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - typebot_s3_data:/data
+    networks:
+      - rede_geral
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc config host add minio http://minio:9000 minio minio123;
+      /usr/bin/mc mb minio/typebot;
+      /usr/bin/mc anonymous set public minio/typebot/public;
+      exit 0;
+      "
+    networks:
+      - rede_geral
+
+
+  mail:
+    image: bytemark/smtp
+    restart: always
+    networks:
+      - rede_geral
+      
+volumes:
+  typebot_s3_data:
+
+networks:
+  rede_geral:
+    external: true
